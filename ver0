@@ -1,0 +1,49 @@
+import os
+import cv2
+import mediapipe as mp
+
+# Setup MediaPipe Pose
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
+mp_drawing = mp.solutions.drawing_utils
+
+# Tentukan jalur ke folder gambar dan folder hasil anotasi
+images_folder = 'agungcnn/datasetmentah'  # Ganti dengan jalur folder gambar asli kamu
+dataset_path = 'agungcnn/dataset'  # Ganti dengan jalur ke folder hasil anotasi
+
+# Membuat folder untuk setiap kategori jika belum ada
+categories = ['Kiri', 'Kanan', 'Maju', 'Mundur', 'Stop']
+for category in categories:
+    category_path = os.path.join(dataset_path, category)
+    if not os.path.exists(category_path):
+        os.makedirs(category_path)
+
+def save_pose_images(image_path, category):
+    img = cv2.imread(image_path)
+    if img is None:
+        print(f"Error loading image: {image_path}")
+        return
+    
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    results = pose.process(img_rgb)
+    
+    # Jika pose terdeteksi
+    if results.pose_landmarks:
+        # Gambar landmark pada gambar
+        annotated_img = img.copy()
+        mp_drawing.draw_landmarks(annotated_img, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        
+        # Simpan gambar dengan anotasi landmark
+        file_name = os.path.basename(image_path)
+        output_path = os.path.join(dataset_path, category, file_name)
+        cv2.imwrite(output_path, annotated_img)
+    else:
+        print(f"No pose landmarks detected in image: {image_path}")
+
+# Ambil semua file gambar dari folder
+image_paths = [os.path.join(images_folder, filename) for filename in os.listdir(images_folder) if filename.endswith('.jpg')]
+
+# Proses setiap gambar
+for image_path in image_paths:
+    category = 'Stop'  # Ganti dengan kategori yang sesuai
+    save_pose_images(image_path, category)
